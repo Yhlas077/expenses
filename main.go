@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -20,10 +21,10 @@ type ErrorResponse struct {
 }
 
 type Expense struct {
-	ID          int     `json:"id"`
-	Description string  `json:"description"`
-	Amount      float64 `json:"amount"`
-	Date        string  `json:"date"`
+	ID          int    `json:"id"`
+	Date        string `json:"date"`
+	Description string `json:"description"`
+	Amount      int    `json:"amount"`
 }
 
 type DeleteResponse struct {
@@ -55,20 +56,18 @@ func addExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id_string := strconv.Itoa(req.ID)
-	amount_string := strconv.FormatFloat(req.Amount, 'f', -1, 64)
+	amount_string := strconv.Itoa(req.Amount)
 
 	// expenses = append(expenses, exp)
 
-	_, err = db.Exec(context.Background(), "insert into expenses (id, date, description, amount) values ( '"+id_string+"', '"+req.Description+"', '"+amount_string+"', '"+req.Date+"');")
+	_, err = db.Exec(context.Background(), "insert into expenses(id, date, description, amount) values ( '"+id_string+"', '"+req.Date+"', '"+req.Description+"', '"+amount_string+"');")
 	if err != nil {
 		json.NewEncoder(w).Encode(ErrorResponse{err.Error(), "400"})
 		return
 	}
 
 	json.NewEncoder(w).Encode(true)
-	if err != nil {
-		fmt.Printf("Error encoding response: %v\n", err)
-	}
+
 }
 
 // GET
@@ -90,7 +89,7 @@ func getExpenses(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(expenses)
 }
 
-// // DELETE
+// // // DELETE
 func deleteExpense(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -108,7 +107,7 @@ func deleteExpense(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(DeleteResponse{Success: false})
 }
 
-// // UPDATE
+// // // UPDATE
 func updateExpense(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -180,6 +179,9 @@ func method(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/expenses/summary", summary)
+
+	db = connectDB("postgres://yhlas1:123456@localhost:5432")
+	defer db.Close(context.Background())
 
 	http.HandleFunc("/expenses", method)
 
